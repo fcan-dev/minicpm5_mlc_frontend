@@ -1,0 +1,42 @@
+name: Sync to Hugging Face Space
+
+# One push updates both GitHub and the live Space:
+# https://huggingface.co/spaces/fatih-can/minicpm5-webgpu
+#
+# Requires a repository secret named HF_TOKEN with WRITE access to that Space
+# (Settings -> Secrets and variables -> Actions -> New repository secret).
+#
+# The action mirrors this repo to the Hub with the hf CLI -- it is not a
+# git-to-git push, so .gitignore rules are NOT honoured here. That is safe in
+# this repo only because .env is committed nowhere: it never reaches GitHub, so
+# it can never reach the Space.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Mirror repo to the Hugging Face Space
+        uses: huggingface/hub-sync@v0.3.0
+        with:
+          github_repo_id: ${{ github.repository }}
+          huggingface_repo_id: fatih-can/minicpm5-webgpu
+          hf_token: ${{ secrets.HF_TOKEN }}
+          repo_type: space
+
+          # Pinned deliberately: the action defaults this to `gradio`, and this
+          # Space is Static. Never let that default apply.
+          space_sdk: static
+
+          # true = true mirror: a file deleted here is deleted on the Space.
+          # Side effect on first run: root .git* is always excluded from the
+          # upload set, so the Space's template .gitattributes / .gitignore get
+          # pruned. Both are inert for a Static Space. Set false to keep them,
+          # at the cost of leaving deleted files behind on the Hub forever.
+          delete_removed: "true"
