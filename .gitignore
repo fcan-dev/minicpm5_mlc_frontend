@@ -1,0 +1,10 @@
+node_modules
+dist
+.env*
+coverage
+.DS_Store
+.nx-test
+# Test files are local-only: kept on disk, never committed
+*.test.ts
+*.test.tsx
+src/test/

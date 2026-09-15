@@ -1,0 +1,179 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { Conversation, Message } from "../types";
+import {
+  listConversations,
+  getConversation,
+  putConversation,
+  deleteConversation,
+  newConversation,
+} from "../lib/conversations";
+import { en } from "../i18n/en";
+
+export interface UseConversations {
+  list: Conversation[];
+  activeId: string | null;
+  messages: Message[];
+  ready: boolean;
+  create(): Promise<void>;
+  select(id: string): Promise<void>;
+  rename(id: string, title: string): Promise<void>;
+  /** Set an auto-generated title; no-op if the chat was renamed or already titled. */
+  autoTitle(id: string, title: string): Promise<void>;
+  /** True when the active chat still needs an automatic title. */
+  needsAutoTitle(): boolean;
+  remove(id: string): Promise<void>;
+  setMessages(messages: Message[]): void;
+}
+
+/**
+ * Owns the conversation list and the active conversation's messages.
+ *
+ * Uses a ref for the active conversation so `setMessages` stays stable and
+ * never persists against a stale conversation (important mid-generation).
+ */
+export function useConversations(): UseConversations {
+  const [list, setList] = useState<Conversation[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [messages, setMessagesState] = useState<Message[]>([]);
+  const [ready, setReady] = useState(false);
+  const activeRef = useRef<Conversation | null>(null);
+
+  const applyActive = useCallback((conv: Conversation) => {
+    activeRef.current = conv;
+    setActiveId(conv.id);
+    setMessagesState(conv.messages);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const all = await listConversations();
+      if (cancelled) return;
+      if (all.length === 0) {
+        const fresh = newConversation();
+        await putConversation(fresh);
+        if (cancelled) return;
+        setList([fresh]);
+        applyActive(fresh);
+      } else {
+        const full = (await getConversation(all[0].id)) ?? all[0];
+        if (cancelled) return;
+        setList(all);
+        applyActive(full);
+      }
+      setReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [applyActive]);
+
+  const create = useCallback(async () => {
+    // Reuse an untouched new chat instead of stacking empty ones.
+    const cur = activeRef.current;
+    if (cur && cur.messages.length === 0 && cur.title === en.untitledChat) return;
+    const fresh = newConversation();
+    await putConversation(fresh);
+    setList((prev) => [fresh, ...prev]);
+    applyActive(fresh);
+  }, [applyActive]);
+
+  const select = useCallback(
+    async (id: string) => {
+      if (activeRef.current?.id === id) return;
+      const full = await getConversation(id);
+      if (full) applyActive(full);
+    },
+    [applyActive]
+  );
+
+  const rename = useCallback(async (id: string, title: string) => {
+    const conv = await getConversation(id);
+    if (!conv) return;
+    const clean = title.trim() || en.untitledChat;
+    const next = {
+      ...conv,
+      title: clean,
+      titleLocked: true,
+      autoTitled: true,
+      updatedAt: Date.now(),
+    };
+    await putConversation(next);
+    setList((prev) =>
+      prev.map((c) =>
+        c.id === id
+          ? { ...c, title: clean, titleLocked: true, autoTitled: true, updatedAt: next.updatedAt }
+          : c
+      )
+    );
+    if (activeRef.current?.id === id) activeRef.current = next;
+  }, []);
+
+  const autoTitle = useCallback(async (id: string, title: string) => {
+    const conv = await getConversation(id);
+    if (!conv || conv.titleLocked || conv.autoTitled) return;
+    const clean = title.trim();
+    if (!clean) return;
+    const next = { ...conv, title: clean, autoTitled: true, updatedAt: Date.now() };
+    await putConversation(next);
+    setList((prev) =>
+      prev.map((c) =>
+        c.id === id ? { ...c, title: clean, autoTitled: true, updatedAt: next.updatedAt } : c
+      )
+    );
+    if (activeRef.current?.id === id) activeRef.current = next;
+  }, []);
+
+  const remove = useCallback(
+    async (id: string) => {
+      await deleteConversation(id);
+      let remaining = await listConversations();
+      if (remaining.length === 0) {
+        const fresh = newConversation();
+        await putConversation(fresh);
+        remaining = [fresh];
+      }
+      setList(remaining);
+      if (activeRef.current?.id === id) {
+        const full = (await getConversation(remaining[0].id)) ?? remaining[0];
+        applyActive(full);
+      }
+    },
+    [applyActive]
+  );
+
+  const needsAutoTitle = useCallback(() => {
+    const cur = activeRef.current;
+    return !!cur && !cur.autoTitled && !cur.titleLocked;
+  }, []);
+
+  const setMessages = useCallback((next: Message[]) => {
+    setMessagesState(next);
+    const cur = activeRef.current;
+    if (!cur) return;
+    // The title is generated by the model after the first exchange, so it is
+    // intentionally left untouched here.
+    const updated: Conversation = { ...cur, messages: next, updatedAt: Date.now() };
+    activeRef.current = updated;
+    void putConversation(updated);
+    setList((prev) =>
+      prev.map((c) =>
+        c.id === updated.id ? { ...c, title: updated.title, updatedAt: updated.updatedAt } : c
+      )
+    );
+  }, []);
+
+  return {
+    list,
+    activeId,
+    messages,
+    ready,
+    create,
+    select,
+    rename,
+    autoTitle,
+    needsAutoTitle,
+    remove,
+    setMessages,
+  };
+}
