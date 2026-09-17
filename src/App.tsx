@@ -147,7 +147,7 @@ export default function App() {
 
   if (supportChecked && !supported) {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center p-6">
+      <div className="flex min-h-dvh items-center justify-center p-6">
         <CompatBanner />
       </div>
     );
@@ -157,7 +157,7 @@ export default function App() {
   const totalMb = findDescriptor(settings.model)?.approxSizeMb ?? 0;
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       {sidebarOpen && (
         <button
           type="button"
