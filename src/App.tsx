@@ -111,7 +111,7 @@ function ModelLoadStatus({ view, totalMb }: { view: LoadProgressView | null; tot
           <span className="shrink-0 font-mono text-xs">{ratio}</span>
         )}
       </p>
-      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-300/70 dark:bg-zinc-700">
         <div ref={barRef} className="h-full w-0 rounded-full bg-emerald-500" />
       </div>
     </div>
@@ -187,41 +187,23 @@ export default function App() {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white/80 px-4 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-              aria-label={en.openSidebar}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 md:hidden dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-            >
-              <List size={18} />
-            </button>
-            <span className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-              {en.appName}
-            </span>
-          </div>
-          <SettingsPanel
-            temperature={settings.temperature}
-            topP={settings.topP}
-            maxTokens={settings.maxTokens}
-            systemMessage={settings.systemMessage}
-            reasoning={settings.reasoning}
-            model={settings.model}
-            context={settings.context}
-            onTemperature={(v) => update({ temperature: v })}
-            onTopP={(v) => update({ topP: v })}
-            onMaxTokens={(v) => update({ maxTokens: v })}
-            onSystem={(v) => update({ systemMessage: v })}
-            onReasoning={(v) => update({ reasoning: v })}
-            onModel={(v) => update({ model: v })}
-            onContext={(v) => update({ context: v })}
-            onNewChat={() => void conv.create()}
-            disabled={disabled}
-          />
+        {/* The app name lives at the top of the left bar and the Settings
+            button at the top of the right bar; on mobile only the sidebar
+            toggle remains in the header. */}
+        <header className="flex items-center gap-2 border-b border-zinc-200 bg-white/80 px-4 py-2.5 backdrop-blur md:hidden dark:border-zinc-800 dark:bg-zinc-950/80">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            aria-label={en.openSidebar}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+          >
+            <List size={18} />
+          </button>
         </header>
 
-        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* One gray surface holds BOTH the conversation and the composer:
+            the text box is part of the conversation, not a separate bar. */}
+        <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-zinc-100 dark:bg-zinc-900">
           <div className="flex-1 overflow-hidden">
             <MessageList
               messages={conv.messages}
@@ -231,7 +213,7 @@ export default function App() {
             />
           </div>
 
-          <footer className="border-t border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
+          <footer className="p-3 pt-1">
             <div className="mx-auto max-w-3xl">
               {chat.status === "loading" && (
                 <ModelLoadStatus view={chat.loadView} totalMb={totalMb} />
@@ -263,6 +245,33 @@ export default function App() {
         model={settings.model}
         cache={cache}
         onSelect={(id) => update({ model: id })}
+        settingsPanel={
+          <SettingsPanel
+            temperature={settings.temperature}
+            topP={settings.topP}
+            maxTokens={settings.maxTokens}
+            systemMessage={settings.systemMessage}
+            reasoning={settings.reasoning}
+            model={settings.model}
+            context={settings.context}
+            onTemperature={(v) => update({ temperature: v })}
+            onTopP={(v) => update({ topP: v })}
+            onMaxTokens={(v) => update({ maxTokens: v })}
+            onSystem={(v) => update({ systemMessage: v })}
+            onReasoning={(v) => update({ reasoning: v })}
+            onModel={(v) => update({ model: v })}
+            onContext={(v) => update({ context: v })}
+            onNewChat={() => void conv.create()}
+            disabled={disabled}
+          />
+        }
+        onDownload={(id) => {
+          // Select the quant first so the load (and any later turn) targets it,
+          // then fetch its weights without generating.
+          update({ model: id });
+          void chat.preload(id);
+        }}
+        loadingModel={chat.status === "loading" ? settings.model : null}
         disabled={disabled}
       />
     </div>

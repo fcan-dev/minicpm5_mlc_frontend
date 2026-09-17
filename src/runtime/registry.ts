@@ -1,6 +1,7 @@
 import type { ModelDescriptor, ModelId, ContextPreset } from "../types";
 import type { ModelRuntime } from "./ModelRuntime";
 import { MlcRuntime } from "./mlc";
+import { en } from "../i18n/en";
 
 // q3f16_1 is intentionally absent: MLC's int3 (group_size=40) WebGPU kernels
 // produce token soup, while q4f16_1 is coherent on the same browser/GPU. The
@@ -14,6 +15,8 @@ const DESCRIPTORS: ModelDescriptor[] = [
     quant: "q4f16_1",
     approxSizeMb: 1420,
     vramRequiredMb: 2000,
+    category: "language",
+    recommended: true,
   },
   {
     // AWQ (activation-aware) 4-bit, group 128, converted from an AutoAWQ
@@ -26,6 +29,8 @@ const DESCRIPTORS: ModelDescriptor[] = [
     quant: "q4f16_autoawq",
     approxSizeMb: 2116,
     vramRequiredMb: 2800,
+    category: "language",
+    hint: en.quantAwqHint,
   },
 ];
 

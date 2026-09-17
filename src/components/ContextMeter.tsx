@@ -45,7 +45,7 @@ export function ContextMeter({ used, max }: Props) {
       <span className={`shrink-0 font-mono text-[11px] font-medium ${TEXT_TONES[level]}`}>
         {pair}
       </span>
-      <span className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+      <span className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-300/70 dark:bg-zinc-700">
         <span
           className={`block h-full rounded-full transition-[width] duration-500 ${TONES[level]}`}
           style={{ width: `${ratio * 100}%` }}

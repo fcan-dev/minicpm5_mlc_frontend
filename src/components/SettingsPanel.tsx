@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { SlidersHorizontal, Plus, ArrowSquareOut } from "@phosphor-icons/react";
+import { useEffect, useRef, useState } from "react";
+import { SlidersHorizontal, Plus, ArrowSquareOut, CaretDown } from "@phosphor-icons/react";
 import { en } from "../i18n/en";
 import { getModelDescriptors } from "../runtime/registry";
 import { MLC_REPO, MLC_REPO_URL } from "../runtime/mlc";
@@ -44,6 +44,40 @@ export function SettingsPanel({
   disabled,
 }: Props) {
   const [open, setOpen] = useState(false);
+  // Viewport position of the open popover, captured from the button when it
+  // opens. `position: fixed` is deliberate: the panel lives inside the
+  // right bar's scroll container, where an `absolute` popover would be
+  // clipped; fixed escapes the clip and truly overlays the rest of the app.
+  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const toggle = () => {
+    if (!open) {
+      const el = wrapRef.current;
+      if (el) {
+        const r = el.getBoundingClientRect();
+        setAnchor({ top: r.bottom + 8, right: window.innerWidth - r.right });
+      }
+    }
+    setOpen((o) => !o);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [open]);
+
   // The shipped quants change over time (q3f16_1 was retired), so the segmented
   // control derives its column count instead of hardcoding `grid-cols-3` -
   // otherwise a removed tier leaves a dead column and the buttons stop filling
@@ -51,20 +85,27 @@ export function SettingsPanel({
   const quants = getModelDescriptors();
 
   return (
-    <div className="relative">
+    <div ref={wrapRef}>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         aria-expanded={open}
         aria-label={en.settingsLabel}
-        className="flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:border-emerald-500/60 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+        className="flex w-full items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-2.5 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:border-emerald-500/60 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
       >
         <SlidersHorizontal size={16} />
-        <span className="hidden sm:inline">{en.settingsLabel}</span>
+        {en.settingsLabel}
+        <CaretDown
+          size={14}
+          className={`ml-auto transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full z-20 mt-2 w-80 rounded-xl border border-zinc-200 bg-white p-4 shadow-lg shadow-zinc-900/5 dark:border-zinc-700 dark:bg-zinc-900">
+      {open && anchor && (
+        <div
+          style={{ position: "fixed", top: anchor.top, right: anchor.right }}
+          className="z-50 w-80 rounded-xl border border-zinc-200 bg-white p-4 shadow-lg shadow-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900"
+        >
           <div className="flex items-center justify-between gap-2">
             <label htmlFor="minicpm-system" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
               {en.systemMessageLabel}
@@ -126,7 +167,6 @@ export function SettingsPanel({
           {/* Context window */}
           <div className="mt-3">
             <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{en.contextLabel}</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">{en.contextHint}</p>
             <div className="mt-1.5 grid grid-cols-4 gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
               {CONTEXT_PRESETS.map((c) => (
                 <button
@@ -186,7 +226,6 @@ export function SettingsPanel({
             <div className="flex items-center justify-between gap-3 border-t border-zinc-200 pt-3 dark:border-zinc-700">
               <div>
                 <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{en.reasoningLabel}</p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">{en.reasoningHint}</p>
               </div>
               <button
                 type="button"

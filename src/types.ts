@@ -6,6 +6,8 @@ export interface Message {
   content: string;
   /** Reasoning extracted from a `<think>...</think>` block, if any. */
   reasoning?: string;
+  /** Unix ms when the message was added; absent on messages from before it existed. */
+  createdAt?: number;
 }
 
 export interface Conversation {
@@ -86,6 +88,9 @@ export function isModelId(value: unknown): value is ModelId {
 export const CONTEXT_PRESETS = [4096, 8192, 16384, 32768] as const;
 export type ContextPreset = (typeof CONTEXT_PRESETS)[number];
 
+/** What a model does. The status bar groups its cards under these sections. */
+export type ModelCategory = "language" | "embedder" | "tts";
+
 export interface ModelDescriptor {
   id: ModelId;
   labelI18n: string;
@@ -94,4 +99,10 @@ export interface ModelDescriptor {
   /** Declared model size, used to warn about the download before it happens. */
   approxSizeMb: number;
   vramRequiredMb: number;
+  /** Which section of the status bar this card belongs to. */
+  category: ModelCategory;
+  /** True for the quant we suggest to new users; shown as a badge on the card. */
+  recommended?: boolean;
+  /** Short line under the card's name, e.g. a variant's trade-off. */
+  hint?: string;
 }

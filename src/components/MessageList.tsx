@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
 import { ReasoningBlock } from "./ReasoningBlock";
 import { Markdown } from "../lib/markdown";
@@ -11,6 +11,30 @@ interface Props {
   streaming: boolean;
   pending: string;
   onRegenerate(): void;
+}
+
+/**
+ * A divider appears before a turn (a user message) when the conversation has
+ * gone quiet for a while, so re-reading a long chat shows where each day's
+ * exchange happened. Messages written before `createdAt` existed carry no
+ * time, and pairs without times never produce a divider.
+ */
+const GAP_THRESHOLD_MS = 10 * 60 * 1000;
+
+function showDividerBefore(messages: Message[], i: number): boolean {
+  const m = messages[i];
+  if (m.role !== "user" || typeof m.createdAt !== "number") return false;
+  if (i === 0) return true;
+  const prev = messages[i - 1];
+  if (typeof prev.createdAt !== "number") return false;
+  return m.createdAt - prev.createdAt >= GAP_THRESHOLD_MS;
+}
+
+function formatStamp(ts: number): string {
+  const d = new Date(ts);
+  const day = d.toLocaleDateString("en-US", { weekday: "short" });
+  const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return `${day} ${time}`;
 }
 
 export function MessageList({ messages, streaming, pending, onRegenerate }: Props) {
@@ -38,29 +62,39 @@ export function MessageList({ messages, streaming, pending, onRegenerate }: Prop
   }
 
   return (
-    <ul className="flex h-full flex-col gap-3 overflow-y-auto p-4">
+    // Centered column: user pill (right) and reply (left) sit close together
+    // horizontally instead of hugging opposite edges of a wide screen.
+    <ul className="mx-auto flex h-full w-full max-w-3xl flex-col gap-3 overflow-y-auto p-4">
       {messages.map((m, i) => (
-        <MessageBubble
-          key={m.id}
-          message={m}
-          showActions={m.role === "assistant" && i === lastAssistantIdx && !streaming}
-          onRegenerate={onRegenerate}
-        />
+        <Fragment key={m.id}>
+          {showDividerBefore(messages, i) && (
+            <li aria-hidden className="my-1 self-center text-[11px] font-medium text-zinc-400 dark:text-zinc-500">
+              {formatStamp(m.createdAt!)}
+            </li>
+          )}
+          <MessageBubble
+            message={m}
+            showActions={m.role === "assistant" && i === lastAssistantIdx && !streaming}
+            onRegenerate={onRegenerate}
+          />
+        </Fragment>
       ))}
 
       {streaming && (
         <li className="flex justify-start">
-          <div className="max-w-[80%] rounded-2xl rounded-bl-md border border-zinc-200 bg-white px-4 py-2.5 text-left text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
-            <ReasoningBlock reasoning={live.reasoning} streaming={!live.content} />
-            {live.content ? (
-              <Markdown>{live.content}</Markdown>
-            ) : (
-              !live.reasoning && (
-                <span className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-                  <Spinner /> {en.streaming}
-                </span>
-              )
-            )}
+          <div className="max-w-2xl min-w-0">
+            <div className="rounded-2xl border border-zinc-300/60 bg-white px-4 py-3 text-left text-zinc-900 dark:border-zinc-700/60 dark:bg-zinc-950/40 dark:text-zinc-100">
+              <ReasoningBlock reasoning={live.reasoning} streaming={!live.content} />
+              {live.content ? (
+                <Markdown>{live.content}</Markdown>
+              ) : (
+                !live.reasoning && (
+                  <span className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+                    <Spinner /> {en.streaming}
+                  </span>
+                )
+              )}
+            </div>
           </div>
         </li>
       )}

@@ -48,6 +48,11 @@ export interface UseChat {
   onLoad: ChatCallbacks["onLoad"];
   send(text: string): Promise<void>;
   regenerate(): Promise<void>;
+  /**
+   * Load `id`'s weights now (downloading them into the browser cache) without
+   * generating anything. Used by the model cards' download button.
+   */
+  preload(id: ModelId): Promise<void>;
   abort(): void;
 }
 
@@ -109,9 +114,24 @@ export function useChat(conv: UseConversations, settings: Settings): UseChat {
   /** The in-flight title completion, if any. It shares the engine with chat. */
   const namingRef = useRef<Promise<void> | null>(null);
 
-  const ensureLoaded = useCallback(async (): Promise<ModelRuntime> => {
-    if (runtimeRef.current) return runtimeRef.current;
-    const rt = createRuntime(settingsRef.current.model, settingsRef.current.context);
+  /**
+   * Load the runtime for `id` if it is not already in hand.
+   *
+   * The target id is claimed on the "applied" refs BEFORE the old engine is
+   * touched: a download click updates `settings.model` in the same tick, and
+   * the settings-swap effect that then runs must see the new id as already
+   * applied, or it would unload the engine we are loading.
+   */
+  const ensureLoadedFor = useCallback(async (id: ModelId): Promise<ModelRuntime> => {
+    if (runtimeRef.current?.id === id) return runtimeRef.current;
+    appliedModelRef.current = id;
+    appliedContextRef.current = settingsRef.current.context;
+    if (runtimeRef.current) {
+      const old = runtimeRef.current;
+      runtimeRef.current = null;
+      void old.unload().catch(() => {});
+    }
+    const rt = createRuntime(id, settingsRef.current.context);
     runtimeRef.current = rt;
     setStatus("loading");
     setLoadView(initialLoadProgress());
@@ -125,6 +145,25 @@ export function useChat(conv: UseConversations, settings: Settings): UseChat {
     setStatus("idle");
     return rt;
   }, []);
+
+  const ensureLoaded = useCallback(
+    async (): Promise<ModelRuntime> => ensureLoadedFor(settingsRef.current.model),
+    [ensureLoadedFor]
+  );
+
+  const preload = useCallback(
+    async (id: ModelId) => {
+      try {
+        await ensureLoadedFor(id);
+      } catch (e) {
+        runtimeRef.current = null;
+        setLoadView(null);
+        setStatus("error");
+        setErrorMessage((e instanceof Error ? e.message : "") || en.errorLoad);
+      }
+    },
+    [ensureLoadedFor]
+  );
 
   /**
    * Finish off a title completion before starting a user turn. The title call
@@ -239,6 +278,7 @@ export function useChat(conv: UseConversations, settings: Settings): UseChat {
                 role: "assistant",
                 content,
                 reasoning: reasoning || undefined,
+                createdAt: Date.now(),
               },
             ]);
           }
@@ -254,6 +294,7 @@ export function useChat(conv: UseConversations, settings: Settings): UseChat {
             role: "assistant",
             content,
             reasoning: reasoning || undefined,
+            createdAt: Date.now(),
           },
         ]);
         // Real prompt tokens from the pipeline: this is the context window fill.
@@ -301,7 +342,12 @@ export function useChat(conv: UseConversations, settings: Settings): UseChat {
     async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || statusRef.current === "loading" || statusRef.current === "generating") return;
-      const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: trimmed };
+      const userMsg: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: trimmed,
+      createdAt: Date.now(),
+    };
       const next = [...messagesRef.current, userMsg];
       setMessagesRef.current(next);
       await runGeneration(next);
@@ -366,6 +412,7 @@ export function useChat(conv: UseConversations, settings: Settings): UseChat {
     },
     send,
     regenerate,
+    preload,
     abort,
   };
 }

@@ -23,12 +23,10 @@ export const en = {
   topPLabel: "Top P",
   maxTokensLabel: "Max tokens",
   reasoningLabel: "Reasoning",
-  reasoningHint: "Let the model think before answering",
   modelLabel: "Model quant",
   modelHint: "Smaller quants use less memory; larger ones answer better",
   repoLabel: "Model repository",
   contextLabel: "Context window",
-  contextHint: "How much conversation the model remembers",
 
   reasoningTitle: "Reasoning",
   thinking: "Thinking",
@@ -53,7 +51,7 @@ export const en = {
   contextNearLimit: "Nearly full",
   contextHintRaise: "Raise the context window in Settings",
 
-  benchmarkTitle: "Metrics",
+  benchmarkTitle: "Status",
   // The card below reports this origin's whole storage footprint, not a list of
   // model files, so the heading has to say so.
   storageTitle: "Browser storage",
@@ -71,6 +69,19 @@ export const en = {
   storageUsed: "Used by this site",
   storageQuota: "Available to this site",
   recheck: "Re-check",
+  // Per-card actions and copy in the chat.
+  downloadModel: "Download",
+  downloading: "Downloading",
+  copyMessage: "Copy",
+  copied: "Copied",
+  // Model cards are grouped under these collapsible sections.
+  categoryLanguage: "Language Model",
+  categoryEmbedder: "Embedding Model",
+  categoryTts: "Text-to-Speech",
+  noModelsYet: "No models yet",
+  // Shown as a badge on the quant we suggest to new users.
+  recommended: "Recommended",
+  quantAwqHint: "Better quality, but larger",
   evictedLabel: "Cleared by browser",
   evictedHint: "The browser freed these files; the next run downloads them again",
   inUseLabel: "In use",

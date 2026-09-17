@@ -1,6 +1,8 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
 import {
   ArrowClockwise,
+  CaretRight,
   CheckCircle,
   Clock,
   CloudArrowDown,
@@ -10,29 +12,53 @@ import {
   Trash,
   WarningCircle,
 } from "@phosphor-icons/react";
-import { useBenchmarkState, getAvgTokPerSec } from "../hooks/useBenchmark";
+import { useBenchmarkState, getAvgTokPerSec, type ModelMetrics } from "../hooks/useBenchmark";
 import { getModelDescriptors } from "../runtime/registry";
 import { formatBytes, quantStatus, type QuantStatus } from "../lib/modelCacheRecord";
 import { en } from "../i18n/en";
-import type { ModelId } from "../types";
+import type { ModelCategory, ModelDescriptor, ModelId } from "../types";
 import type { ModelCacheState } from "../hooks/useModelCache";
+
+/** The sections the status bar groups its model cards under. */
+const CATEGORIES: { id: ModelCategory; label: string }[] = [
+  { id: "language", label: en.categoryLanguage },
+  { id: "embedder", label: en.categoryEmbedder },
+  { id: "tts", label: en.categoryTts },
+];
 
 export function BenchmarkPanel({
   model,
   cache,
   onSelect,
+  settingsPanel,
+  onDownload,
+  loadingModel = null,
   disabled = false,
 }: {
   model: ModelId;
   cache: ModelCacheState;
   onSelect(id: ModelId): void;
+  /** Rendered at the very top of the bar: the Settings panel and its button. */
+  settingsPanel?: ReactNode;
+  /** Download (pre-fetch the weights of) a quant into the browser cache. */
+  onDownload?(id: ModelId): void;
+  /** The quant whose load is currently in flight, if any. */
+  loadingModel?: ModelId | null;
   disabled?: boolean;
 }) {
   const { metrics } = useBenchmarkState();
   const models = getModelDescriptors();
+  // First step: only the language models exist yet, and only that section
+  // starts expanded - the other two are reserved for models to come.
+  const [openCats, setOpenCats] = useState<Record<ModelCategory, boolean>>({
+    language: true,
+    embedder: false,
+    tts: false,
+  });
 
   return (
-    <aside className="hidden w-72 shrink-0 flex-col gap-4 overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-4 lg:flex dark:border-zinc-800 dark:bg-zinc-950">
+    <aside className="hidden w-[340px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-4 lg:flex dark:border-zinc-800 dark:bg-zinc-950">
+      {settingsPanel}
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
           {en.benchmarkTitle}
@@ -83,20 +109,86 @@ export function BenchmarkPanel({
         )}
       </section>
 
-      {models.map((m) => {
-        const md = metrics[m.id];
-        const avgTok = getAvgTokPerSec(m.id);
-        const status = quantStatus(cache.cached[m.id], cache.loadedHere[m.id]);
-        const clearing = cache.clearing === m.id;
-        const isSelected = model === m.id;
+      {CATEGORIES.map((cat) => {
+        const items = models.filter((m) => m.category === cat.id);
+        const open = openCats[cat.id];
         return (
-          <section
-            key={m.id}
-            className={[
-              // The frame carries every visual state; the inner button is the
-              // interaction and stays visually inert, so hover, focus and the
-              // press never light up a smaller rectangle inside the card.
-              "relative rounded-xl border p-3 transition-[border-color,box-shadow,transform] duration-150 ease-out",
+          <section key={cat.id} aria-label={cat.label}>
+            <button
+              type="button"
+              onClick={() => setOpenCats((o) => ({ ...o, [cat.id]: !o[cat.id] }))}
+              aria-expanded={open}
+              className="flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 transition-colors hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+            >
+              <CaretRight
+                size={12}
+                weight="bold"
+                className={`shrink-0 transition-transform duration-150 ${open ? "rotate-90" : ""}`}
+              />
+              {cat.label}
+              <span className="ml-auto font-mono text-[10px] font-medium text-zinc-400 dark:text-zinc-500">
+                {items.length}
+              </span>
+            </button>
+            {open && (
+              <div className="mt-1.5 space-y-3">
+                {items.length === 0 && (
+                  <p className="px-1 text-xs text-zinc-400 dark:text-zinc-500">{en.noModelsYet}</p>
+                )}
+                {items.map((m) => (
+                  <ModelCard
+                    key={m.id}
+                    m={m}
+                    md={metrics[m.id]}
+                    avgTok={getAvgTokPerSec(m.id)}
+                    cache={cache}
+                    model={model}
+                    onSelect={onSelect}
+                    onDownload={onDownload}
+                    loadingModel={loadingModel}
+                    disabled={disabled}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })}
+    </aside>
+  );
+}
+
+function ModelCard({
+  m,
+  md,
+  avgTok,
+  cache,
+  model,
+  onSelect,
+  onDownload,
+  loadingModel,
+  disabled,
+}: {
+  m: ModelDescriptor;
+  md: ModelMetrics | undefined;
+  avgTok: number;
+  cache: ModelCacheState;
+  model: ModelId;
+  onSelect(id: ModelId): void;
+  onDownload?(id: ModelId): void;
+  loadingModel: ModelId | null;
+  disabled: boolean;
+}) {
+  const status = quantStatus(cache.cached[m.id], cache.loadedHere[m.id]);
+  const clearing = cache.clearing === m.id;
+  const isSelected = model === m.id;
+  return (
+    <section
+      className={[
+        // The frame carries every visual state; the inner button is the
+        // interaction and stays visually inert, so hover, focus and the
+        // press never light up a smaller rectangle inside the card.
+        "relative rounded-xl border p-3 transition-[border-color,box-shadow,transform] duration-150 ease-out",
               // Tactile press: transform-only, on the whole card.
               "has-[>button:first-child:active]:scale-[0.99]",
               // Keyboard-only focus ring, offset so it never fuses with the
@@ -125,9 +217,21 @@ export function BenchmarkPanel({
               className="w-full cursor-pointer text-left focus:outline-none disabled:cursor-not-allowed"
             >
               <div className="flex items-start justify-between gap-2">
-                <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                  {m.labelI18n}
-                </span>
+                <div className="min-w-0">
+                  <span className="block truncate text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                    {m.labelI18n}
+                  </span>
+                  {m.recommended && (
+                    <p className="mt-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                      {en.recommended}
+                    </p>
+                  )}
+                  {m.hint && (
+                    <p className="mt-0.5 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
+                      {m.hint}
+                    </p>
+                  )}
+                </div>
                 <StatusChip status={status} />
               </div>
               {status === "evicted" && (
@@ -188,10 +292,23 @@ export function BenchmarkPanel({
                 {clearing ? en.clearingModelCache : en.clearModelCache}
               </button>
             )}
-          </section>
-        );
-      })}
-    </aside>
+            {(status === "not-downloaded" || status === "evicted") && (
+              <button
+                type="button"
+                onClick={() => onDownload?.(m.id)}
+                disabled={disabled}
+                aria-label={`${en.downloadModel} ${m.labelI18n}`}
+                className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-600/50 bg-emerald-600/5 px-2 py-1 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-600/10 disabled:opacity-50 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+              >
+                {loadingModel === m.id ? (
+                  <SpinnerGap size={13} className="animate-spin" />
+                ) : (
+                  <CloudArrowDown size={13} />
+                )}
+                {loadingModel === m.id ? en.downloading : en.downloadModel}
+              </button>
+            )}
+      </section>
   );
 }
 

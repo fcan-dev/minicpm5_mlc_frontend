@@ -35,8 +35,10 @@ export function Composer({ onSend, disabled, placeholder, generating, onStop }: 
     setText("");
   };
 
+  // The button stretches to the box's height (items-stretch, no fixed py on
+  // the button) so the two always line up exactly, even on one line.
   return (
-    <div className="flex items-end gap-2">
+    <div className="flex items-stretch gap-2">
       <textarea
         ref={taRef}
         value={text}
@@ -50,7 +52,7 @@ export function Composer({ onSend, disabled, placeholder, generating, onStop }: 
         rows={1}
         placeholder={placeholder ?? en.inputPlaceholder}
         aria-label={en.inputPlaceholder}
-        className="max-h-40 min-h-[2.75rem] flex-1 resize-none rounded-lg border border-zinc-300 bg-white p-3 text-sm text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-400"
+        className="max-h-40 min-h-[3.25rem] flex-1 resize-none rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-400"
       />
       {generating ? (
         <button
@@ -58,7 +60,7 @@ export function Composer({ onSend, disabled, placeholder, generating, onStop }: 
           onClick={onStop}
           aria-label={en.stop}
           title={en.stop}
-          className="flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-rose-600 px-4 py-3 text-white transition-[background-color,transform] duration-150 ease-out hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white active:translate-y-px dark:hover:bg-rose-500 dark:focus-visible:ring-offset-zinc-950"
+          className="flex shrink-0 items-center justify-center rounded-2xl bg-rose-600 px-5 text-white transition-[background-color,transform] duration-150 ease-out hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-100 active:translate-y-px dark:hover:bg-rose-500 dark:focus-visible:ring-offset-zinc-900"
         >
           <Square size={20} weight="fill" />
         </button>
@@ -69,7 +71,7 @@ export function Composer({ onSend, disabled, placeholder, generating, onStop }: 
           disabled={disabled || !text.trim()}
           aria-label={en.send}
           title={en.send}
-          className="flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-emerald-600 px-4 py-3 text-white transition-[background-color,transform] duration-150 ease-out hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-emerald-500 dark:focus-visible:ring-offset-zinc-950"
+          className="flex shrink-0 items-center justify-center rounded-2xl bg-emerald-600 px-5 text-white transition-[background-color,transform] duration-150 ease-out hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-100 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-emerald-500 dark:focus-visible:ring-offset-zinc-900"
         >
           <PaperPlaneRight size={20} />
         </button>

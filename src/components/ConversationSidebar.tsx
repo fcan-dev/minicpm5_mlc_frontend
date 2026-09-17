@@ -45,8 +45,14 @@ export function ConversationSidebar({
   return (
     <nav
       aria-label={en.chatsLabel}
-      className="flex h-full w-64 shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+      className="flex h-full w-[300px] shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
     >
+      <div className="px-4 pb-1 pt-4">
+        <span className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+          {en.appName}
+        </span>
+      </div>
+
       <div className="flex items-center justify-between px-3 py-3">
         <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
           {en.chatsLabel}

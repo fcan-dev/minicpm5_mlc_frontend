@@ -9,6 +9,11 @@ import {
 } from "../lib/conversations";
 import { en } from "../i18n/en";
 
+/** Newest first: a chat that was just written, renamed or titled moves to the top. */
+function byUpdatedDesc(a: Conversation, b: Conversation): number {
+  return b.updatedAt - a.updatedAt;
+}
+
 export interface UseConversations {
   list: Conversation[];
   activeId: string | null;
@@ -100,11 +105,11 @@ export function useConversations(): UseConversations {
     };
     await putConversation(next);
     setList((prev) =>
-      prev.map((c) =>
+      [...prev.map((c) =>
         c.id === id
           ? { ...c, title: clean, titleLocked: true, autoTitled: true, updatedAt: next.updatedAt }
           : c
-      )
+      )].sort(byUpdatedDesc)
     );
     if (activeRef.current?.id === id) activeRef.current = next;
   }, []);
@@ -117,9 +122,9 @@ export function useConversations(): UseConversations {
     const next = { ...conv, title: clean, autoTitled: true, updatedAt: Date.now() };
     await putConversation(next);
     setList((prev) =>
-      prev.map((c) =>
+      [...prev.map((c) =>
         c.id === id ? { ...c, title: clean, autoTitled: true, updatedAt: next.updatedAt } : c
-      )
+      )].sort(byUpdatedDesc)
     );
     if (activeRef.current?.id === id) activeRef.current = next;
   }, []);
@@ -157,9 +162,9 @@ export function useConversations(): UseConversations {
     activeRef.current = updated;
     void putConversation(updated);
     setList((prev) =>
-      prev.map((c) =>
+      [...prev.map((c) =>
         c.id === updated.id ? { ...c, title: updated.title, updatedAt: updated.updatedAt } : c
-      )
+      )].sort(byUpdatedDesc)
     );
   }, []);
 
