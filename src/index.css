@@ -23,16 +23,24 @@ body {
 }
 
 /*
- * A thin scrollbar that follows the zinc palette. Firefox takes the two
- * properties directly; WebKit and Blink need the pseudo-elements. Scoped to
- * elements that ask for the gutter class so it never reaches the page itself.
+ * A thin scrollbar that follows the zinc palette and stays invisible until the
+ * pointer is over the scrolling surface. The gutter is still reserved (above),
+ * so revealing the bar never shifts the content column.
+ *
+ * Firefox takes the two properties directly; WebKit and Blink need the
+ * pseudo-elements. Scoped to elements that ask for the gutter class so it never
+ * reaches the page itself.
  */
 .scroll-gutter {
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.scroll-gutter:hover {
   scrollbar-color: var(--color-zinc-300) transparent;
 }
 
-.dark .scroll-gutter {
+.dark .scroll-gutter:hover {
   scrollbar-color: var(--color-zinc-700) transparent;
 }
 
@@ -49,10 +57,14 @@ body {
   border: 3px solid transparent;
   border-radius: 9999px;
   background-clip: content-box;
+  @apply bg-transparent;
+}
+
+.scroll-gutter:hover::-webkit-scrollbar-thumb {
   @apply bg-zinc-400/60 dark:bg-zinc-600/70;
 }
 
-.scroll-gutter::-webkit-scrollbar-thumb:hover {
+.scroll-gutter:hover::-webkit-scrollbar-thumb:hover {
   @apply bg-zinc-500/70 dark:bg-zinc-500/80;
 }
 

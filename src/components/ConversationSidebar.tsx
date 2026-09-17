@@ -104,7 +104,7 @@ export function ConversationSidebar({
                       if (e.key === "Escape") setEditingId(null);
                     }}
                     aria-label={en.renameConversation}
-                    className="w-full rounded-lg border border-emerald-500/60 bg-white px-2.5 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 dark:bg-zinc-900 dark:text-zinc-100"
+                    className="w-full rounded-lg border border-emerald-600/40 bg-emerald-50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-500 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-zinc-100 dark:placeholder:text-zinc-400"
                   />
                 </li>
               );
