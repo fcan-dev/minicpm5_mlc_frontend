@@ -64,7 +64,7 @@ export function MessageList({ messages, streaming, pending, onRegenerate }: Prop
   return (
     // Centered column: user pill (right) and reply (left) sit close together
     // horizontally instead of hugging opposite edges of a wide screen.
-    <ul className="mx-auto flex h-full w-full max-w-3xl flex-col gap-3 overflow-y-auto p-4">
+    <ul className="mx-auto flex h-full w-full max-w-3xl scroll-gutter flex-col gap-3 overflow-y-auto p-4">
       {messages.map((m, i) => (
         <Fragment key={m.id}>
           {showDividerBefore(messages, i) && (

@@ -57,7 +57,7 @@ export function BenchmarkPanel({
   });
 
   return (
-    <aside className="hidden w-[340px] shrink-0 flex-col gap-4 overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-4 lg:flex dark:border-zinc-800 dark:bg-zinc-950">
+    <aside className="hidden w-85 shrink-0 flex-col gap-4 overflow-y-auto border-l border-zinc-200 bg-zinc-50 p-4 lg:flex dark:border-zinc-800 dark:bg-zinc-950">
       {settingsPanel}
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
@@ -196,7 +196,7 @@ function ModelCard({
               "has-[>button:first-child:focus-visible]:ring-2 has-[>button:first-child:focus-visible]:ring-emerald-600",
               "ring-offset-2 ring-offset-zinc-50 dark:ring-offset-zinc-950",
               isSelected
-                ? "border-emerald-600/50 bg-emerald-600/[0.05] dark:border-emerald-500/50 dark:bg-emerald-500/10"
+                ? "border-emerald-600/50 bg-emerald-600/5 dark:border-emerald-500/50 dark:bg-emerald-500/10"
                 : disabled
                   ? "border-zinc-200 bg-white opacity-60 dark:border-zinc-800 dark:bg-zinc-900"
                   : "border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-600",
@@ -276,7 +276,7 @@ function ModelCard({
             {isSelected && (
               <span
                 aria-hidden
-                className="pointer-events-none absolute -top-2.5 right-3 rounded-full bg-emerald-700 px-2 py-[3px] text-[10px] font-semibold uppercase leading-none tracking-wide text-white dark:bg-emerald-500 dark:text-emerald-950"
+                className="pointer-events-none absolute -top-2.5 right-3 rounded-full bg-emerald-700 px-2 py-0.75 text-[10px] font-semibold uppercase leading-none tracking-wide text-white dark:bg-emerald-500 dark:text-emerald-950"
               >
                 {en.inUseLabel}
               </span>

@@ -11,6 +11,51 @@ body {
   @apply bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
 }
 
+/*
+ * Reserve the scrollbar gutter on the two surfaces that scroll the conversation
+ * and hold the composer. Without it the scrollbar shares its content box with
+ * the text column, so the bar is painted over the message cards instead of
+ * beside them, and the composer loses its right inset while the bar is shown.
+ * Reserving the gutter keeps that inset intact in both states.
+ */
+.scroll-gutter {
+  scrollbar-gutter: stable;
+}
+
+/*
+ * A thin scrollbar that follows the zinc palette. Firefox takes the two
+ * properties directly; WebKit and Blink need the pseudo-elements. Scoped to
+ * elements that ask for the gutter class so it never reaches the page itself.
+ */
+.scroll-gutter {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-zinc-300) transparent;
+}
+
+.dark .scroll-gutter {
+  scrollbar-color: var(--color-zinc-700) transparent;
+}
+
+.scroll-gutter::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.scroll-gutter::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-gutter::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 9999px;
+  background-clip: content-box;
+  @apply bg-zinc-400/60 dark:bg-zinc-600/70;
+}
+
+.scroll-gutter::-webkit-scrollbar-thumb:hover {
+  @apply bg-zinc-500/70 dark:bg-zinc-500/80;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

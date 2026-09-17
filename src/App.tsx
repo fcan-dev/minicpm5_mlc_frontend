@@ -213,7 +213,7 @@ export default function App() {
             />
           </div>
 
-          <footer className="p-3 pt-1">
+          <footer className="scroll-gutter p-3 pt-1">
             <div className="mx-auto max-w-3xl">
               {chat.status === "loading" && (
                 <ModelLoadStatus view={chat.loadView} totalMb={totalMb} />
